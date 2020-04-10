@@ -1,5 +1,5 @@
-# rarities
-rarities <- c("c", "r", "e", "l", "gc", "gr", "ge", "gl")
+library(here)
+source(file.path(here(), "packages.R"))
 
 # number of cards in a pack or the number of "draws"
 nrDraw <- 5
@@ -8,39 +8,66 @@ nrDraw <- 5
 sets <- tibble(name = c("classic", "gvg", "grandt", "oldgods", "gadgetzan",
                         "ungoro", "frozent", "kobolds", "witchwood", "boomsday",
                         "rastakhan", "shadows", "uldum", "descent", "ashes"),
-               nrC = c(92, 40, 49, 50, 49, 49, 49, 49, 48, 49, 49, 49, 49, 49,
+               c = c(92, 40, 49, 50, 49, 49, 49, 49, 48, 49, 49, 49, 49, 49,
                        52),
-               nrR = c(80, 37, 36, 36, 36, 36, 36, 36, 35, 36, 36, 37, 36, 36,
+               r = c(80, 37, 36, 36, 36, 36, 36, 36, 35, 36, 36, 37, 36, 36,
                        35),
-               nrE = c(36, 26, 27, 27, 27, 27, 27, 27, 25, 27, 27, 26, 27, 27,
+               e = c(36, 26, 27, 27, 27, 27, 27, 27, 25, 27, 27, 26, 27, 27,
                        23),
-               nrL = c(32, 20, 20, 21, 20, 23, 23, 23, 21, 24, 23, 24, 23, 28,
+               l = c(32, 20, 20, 21, 20, 23, 23, 23, 21, 24, 23, 24, 23, 28,
                        25))
 
-# probabilities of opening specific card rarities as of 2020-04-08 23:12:50 EST
-packNr <- tibble(nrGc = 198978,
-                 nrGr = 173882,
-                 nrGe = 32768,
-                 nrGl = 11178,
-                 nrC = 10767865 -nrGc,
-                 nrR = 3443419 - nrGr,
-                 nrE = 664097 - nrGe,
-                 nrL = 172864 - nrGl,
-                 ttl = sum(nrGc, nrGr, nrGe, nrGl, nrC, nrR, nrE, nrL))
-
-packStats <- tibble(prC = packNr[["nrC"]] / packNr[["ttl"]],
-                    prR = packNr[["nrR"]] / packNr[["ttl"]],
-                    prE = packNr[["nrE"]] / packNr[["ttl"]],
-                    prL = packNr[["nrL"]] / packNr[["ttl"]],
-                    prGc = packNr[["nrGc"]] / packNr[["ttl"]],
-                    prGr = packNr[["nrGr"]] / packNr[["ttl"]],
-                    prGe = packNr[["nrGe"]] / packNr[["ttl"]],
-                    prGl = packNr[["nrGl"]] / packNr[["ttl"]])
+# numbers/probabilities of pulling certain rarities as well as other info
+pInfo <-
+    tibble(rarity = c("c", "r", "e", "l", "gc", "gr", "ge", "gl"),
+           nr = c(10767865 - 198978,
+                  3443419 - 173882,
+                  664097 - 32768,
+                  172864 - 11178,
+                  198978,
+                  173882,
+                  32768,
+                  11178),
+           pr = nr / sum(nr),
+           dust = c(5, 20, 100, 400, 50, 100, 400, 1600))
 
 #
 OpenPack <-
-    function(space = rarities, draws = nrDraw, probs = unlist(packStats[1,])) {
+    function(set,
+             space = pInfo[["rarity"]],
+             draws = nrDraw,
+             probs = pInfo[["pr"]])
+    {
         pack <- as.list(sample(space, draws, replace = T, probs))
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
-        return(pack)
+        walk(pack, AddCardToCollection, set = set)
+        collection <- AddCardToCollection("", "")
+        return(list(pack, collection))
     }
+
+CreateCollection <- function() {
+    collection <- list(c = vector(length = 10),
+                       r = vector(length = 10),
+                       e = vector(length = 10),
+                       l = vector(length = 10),
+                       cIndex = 1,
+                       rIndex = 1,
+                       eIndex = 1,
+                       lIndex = 1)
+    
+    function(draw, set) {
+        if(draw != "" & set != "") {
+            print(collection)
+            
+            draw <- str_replace(draw, "g", "")
+            card <- sets %>% filter(name == set) %>% pull(draw) %>% seq() %>% sample(size = 1)
+            counter <- collection[[paste0(draw, "Index")]]
+            collection[[draw]][[counter]] <<- card
+            collection[[paste0(draw, "Index")]] <<- collection[[paste0(draw, "Index")]] + 1
+            
+        }
+        return(collection)
+    }
+}
+
+AddCardToCollection <- CreateCollection()

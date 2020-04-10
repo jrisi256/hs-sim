@@ -1,8 +1,7 @@
 library(here)
-source(file.path(here(), "packages.R"))
 source(file.path(here(), "functions.R"))
 
-packs <- map_dfr(1:10000, function(x) {OpenPack()})
+packs <- map_dfr(1:5, function(x) {ChooseCards("ashes")})
 
 df_config <-
     packs %>%
