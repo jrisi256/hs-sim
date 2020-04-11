@@ -1,24 +1,28 @@
 library(here)
 source(file.path(here(), "functions.R"))
 
-packs <- map_dfr(1:300, function(x) {
-    OpenPack(AddCardToAshesCollection)
-})
+completeCollection <- F
+completeCollectionNoDust <- F
+packs <- vector("list", 3000)
+counter <- 1
+completeCollectionCounter = 0
 
-a <- AddCardToAshesCollection("")
-b <-
-    tibble(nr = unlist(a[[1]], use.names = F), name = names(a[[1]])) %>%
-    mutate(mssng = if_else(str_detect(name, "l"), nr - 1, nr - 2),
-           neededDust = case_when(
-               str_detect(name, "c") ~ 40 * mssng,
-               str_detect(name, "r") ~ 100 * mssng,
-               str_detect(name, "e") ~ 400 * mssng,
-               str_detect(name, "l") ~ 1600 * mssng
-           ))
-if(sum(b$neededDust, a[[2]]) >= 0) {
-    print("Hurray, complete your collection with dust")
-} else
-    print("Sad, cannot complete collection with dust")
+while(!completeCollectionNoDust) {
+    
+    # Add pack to log of packs
+    pack <- OpenPack(addCardFuncs$AddCardFromAshes)
+    packs[[counter]] <- pack
+    
+    # Check if completion is complete with/without using dust
+    collection <- addCardFuncs$AddCardFromAshes("")
+    completeCollection <- CompleteCollection(collection)
+    completeCollectionNoDust <- CompleteCollectionNoDust(collection)
+    
+    if(completeCollection & completeCollectionCounter == 0)
+        completeCollectionCounter <- counter
+    
+    counter <- counter + 1
+}
 
 df_config <-
     packs %>%

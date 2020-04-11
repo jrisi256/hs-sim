@@ -68,16 +68,34 @@ CreateCollection <- function(setName, allSets = sets, dustInfo = pInfo) {
                     startDust <<- startDust + cardDust
                 
                 # If we don't already have full copies, add it to collection
-                } else
+                } else {
                     collection[[index]] <<- collection[[index]] + 1
+                }
             }
         }
         return(list(collection, startDust))
     }
 }
 
-#
-AddCardToAshesCollection <- CreateCollection("ashes")
+addCardNames <- list(
+    AddCardFromAshes = "ashes",
+    AddCardFromDescent = "descent",
+    AddCardFromUldum = "uldum",
+    AddCardFromShadows = "shadows",
+    AddCardFromRasta = "rastakhan",
+    AddCardFromBoom = "boomsday",
+    AddCardFromWitch = "witchwood",
+    AddCardFromKob = "kobolds",
+    AddCardFromFrozen = "frozent",
+    AddCardFromUngoro = "ungoro",
+    AddCardFromGadget = "gadgetzan",
+    AddCardFromOldG = "oldgods",
+    AddCardFromGrandT = "grandt",
+    AddCardFromGvg = "gvg",
+    AddCardFromClassic = "classic"
+)
+
+addCardFuncs <- map(addCardNames, CreateCollection)
 
 #
 OpenPack <-
@@ -91,3 +109,41 @@ OpenPack <-
         walk(pack, AddCardFunc)
         return(pack)
     }
+
+#
+CompleteCollection <- function(collection) {
+    
+    df <-
+        tibble(nr = unlist(collection[[1]], use.names = F),
+               name = names(collection[[1]])) %>%
+        mutate(mssng = if_else(str_detect(name, "l"), nr - 1, nr - 2),
+               neededDust = case_when(
+                   str_detect(name, "c") ~ 40 * mssng,
+                   str_detect(name, "r") ~ 100 * mssng,
+                   str_detect(name, "e") ~ 400 * mssng,
+                   str_detect(name, "l") ~ 1600 * mssng
+               ))
+    
+    if(sum(df$neededDust, collection[[2]]) >= 0) {
+        return(T)
+    } else
+        return(F)
+}
+
+CompleteCollectionNoDust <- function(collection) {
+    df <-
+        tibble(nr = unlist(collection[[1]], use.names = F),
+               name = names(collection[[1]])) %>%
+        mutate(complete = case_when(
+            str_detect(name, "l") & nr == 1 ~ T,
+            str_detect(name, "l") & nr == 0 ~ F,
+            nr == 2 ~ T,
+            nr == 0 | nr == 1 ~ F
+        ))
+    
+    if(all(df$complete)) {
+        return(T)
+    } else {
+        return(F)
+    }
+}
