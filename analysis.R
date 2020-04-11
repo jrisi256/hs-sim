@@ -1,25 +1,26 @@
 library(here)
 source(file.path(here(), "functions.R"))
 
-completeCollection <- F
-completeCollectionNoDust <- F
 packs <- vector("list", 3000)
 counter <- 1
 completeCollectionCounter = 0
 
-while(!completeCollectionNoDust) {
+while(T) {
     
     # Add pack to log of packs
-    pack <- OpenPack(addCardFuncs$AddCardFromAshes)
+    pack <- OpenPack(addCardFuncs$ashes)
     packs[[counter]] <- pack
     
-    # Check if completion is complete with/without using dust
-    collection <- addCardFuncs$AddCardFromAshes("")
-    completeCollection <- CompleteCollection(collection)
-    completeCollectionNoDust <- CompleteCollectionNoDust(collection)
+    # Get collection
+    collection <- addCardFuncs$ashes("")
     
-    if(completeCollection & completeCollectionCounter == 0)
+    # Collection is complete using our dust
+    if(CompleteCollection(collection) & completeCollectionCounter == 0)
         completeCollectionCounter <- counter
+        
+    # Collection is complete not using dust
+    if(CompleteCollectionNoDust(collection))
+        break()
     
     counter <- counter + 1
 }

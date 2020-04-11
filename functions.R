@@ -1,146 +1,109 @@
 library(here)
-source(file.path(here(), "packages.R"))
-
-# number of cards in a pack or the number of "draws"
-nrDraw <- 5
-
-# every set and the distribution of rarities
-sets <- tibble(name = c("classic", "gvg", "grandt", "oldgods", "gadgetzan",
-                        "ungoro", "frozent", "kobolds", "witchwood", "boomsday",
-                        "rastakhan", "shadows", "uldum", "descent", "ashes"),
-               c = c(92, 40, 49, 50, 49, 49, 49, 49, 48, 49, 49, 49, 49, 49,
-                       52),
-               r = c(80, 37, 36, 36, 36, 36, 36, 36, 35, 36, 36, 37, 36, 36,
-                       35),
-               e = c(36, 26, 27, 27, 27, 27, 27, 27, 25, 27, 27, 26, 27, 27,
-                       23),
-               l = c(32, 20, 20, 21, 20, 23, 23, 23, 21, 24, 23, 24, 23, 28,
-                       25))
-
-# numbers/probabilities of pulling certain rarities as well as other info
-pInfo <-
-    tibble(rarity = c("c", "r", "e", "l", "gc", "gr", "ge", "gl"),
-           nr = c(10767865 - 198978,
-                  3443419 - 173882,
-                  664097 - 32768,
-                  172864 - 11178,
-                  198978,
-                  173882,
-                  32768,
-                  11178),
-           pr = nr / sum(nr),
-           dust = c(5, 20, 100, 400, 50, 100, 400, 1600))
+source(file.path(here(), "globals.R"))
 
 #
-CreateCollection <- function(setName, allSets = sets, dustInfo = pInfo) {
-    
-    # find set information
-    targetSet <- allSets %>% filter(name == setName)
+CreateCollection <-
+    function(set, rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
     
     # make character vectors for each card which will act as names in our list
-    commons <- paste0("c", seq(targetSet$c))
-    rares <- paste0("r", seq(targetSet$r))
-    epics <- paste0("e", seq(targetSet$e))
-    legends <- paste0("l", seq(targetSet$l))
+    commons <- paste0(rrty["common"], seq(allSets$common[set]))
+    rares <- paste0(rrty["rare"], seq(allSets$rare[set]))
+    epics <- paste0(rrty["epic"], seq(allSets$epic[set]))
+    legends <- paste0(rrty["legend"], seq(allSets$legend[set]))
     allCards <- c(commons, rares, epics, legends)
     
     # the collection, represented as a dictionary, implemented w/ a named list
-    collection <- as.list(rep(0, length(allCards)))
-    names(collection) <- allCards
+    cllctn <- as.list(rep(0, length(allCards)))
+    names(cllctn) <- allCards
     startDust <- 0
     
-    function(draw, set = targetSet, dustDf = dustInfo) {
+    function(draw) {
+        
+        # Just return the collection
         if(draw != "") {
             
             # if we drew a golden card, dust it
-            if(str_detect(draw, "g")) {
-                cardDust <- dustInfo %>% filter(rarity == draw) %>% pull(dust)
-                startDust <<- startDust + cardDust
+            gold <- c(rrty["goldc"], rrty["goldr"], rrty["golde"], rrty["goldl"])
+            if(draw %in% gold) {
+                startDust <<- startDust + dInfo[draw]
                 
             # else if the card is not golden
             } else {
-                card <- set %>% pull(draw) %>% seq() %>% sample(size = 1)
-                index <- paste0(draw, card)
+                
+                # Pick a card with the given rarity as specified by "draw"
+                card <- allSets[[draw]][set] %>% seq() %>% sample(size = 1)
+                idx <- paste0(draw, card)
                 
                 # If we already have full copies of the card, dust it
-                if(collection[[index]] == 2 | (draw == "l" & collection[[index]] == 1)) {
-                    cardDust <- dustInfo %>% filter(rarity == draw) %>% pull(dust)
-                    startDust <<- startDust + cardDust
+                if(cllctn[[idx]] == 2 | (draw == rrty["legend"] & cllctn[[idx]] == 1)) {
+                    startDust <<- startDust + dInfo[draw]
                 
                 # If we don't already have full copies, add it to collection
-                } else {
-                    collection[[index]] <<- collection[[index]] + 1
+                } else if(cllctn[[idx]] == 0 | cllctn[[idx]] == 1) {
+                    cllctn[[idx]] <<- cllctn[[idx]] + 1
                 }
             }
         }
-        return(list(collection, startDust))
+        return(list(cllctn, startDust))
     }
 }
 
-addCardNames <- list(
-    AddCardFromAshes = "ashes",
-    AddCardFromDescent = "descent",
-    AddCardFromUldum = "uldum",
-    AddCardFromShadows = "shadows",
-    AddCardFromRasta = "rastakhan",
-    AddCardFromBoom = "boomsday",
-    AddCardFromWitch = "witchwood",
-    AddCardFromKob = "kobolds",
-    AddCardFromFrozen = "frozent",
-    AddCardFromUngoro = "ungoro",
-    AddCardFromGadget = "gadgetzan",
-    AddCardFromOldG = "oldgods",
-    AddCardFromGrandT = "grandt",
-    AddCardFromGvg = "gvg",
-    AddCardFromClassic = "classic"
-)
-
-addCardFuncs <- map(addCardNames, CreateCollection)
+#
+addCardFuncs <- map(setNames, CreateCollection)
 
 #
 OpenPack <-
-    function(AddCardFunc,
-             space = pInfo[["rarity"]],
-             draws = nrDraw,
-             probs = pInfo[["pr"]])
-    {
+    function(AddCardFunc, space = rarities, draws = nrDraw, probs = pInfo[["pr"]]) {
+        
+        # draw a number of random rarities
         pack <- as.list(sample(space, draws, replace = T, probs))
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
+        
+        # For the given rarity, choose card from the set specified by function
         walk(pack, AddCardFunc)
+        
+        # Return the pack rarity distribution
         return(pack)
     }
 
 #
-CompleteCollection <- function(collection) {
-    
+CompleteCollection <-
+    function(collection, craftInfo = pInfo[["craft"]], rrts = rarities) {
+
+    # Turn collection into data frame, calculate dust cost of missing cards
     df <-
         tibble(nr = unlist(collection[[1]], use.names = F),
                name = names(collection[[1]])) %>%
-        mutate(mssng = if_else(str_detect(name, "l"), nr - 1, nr - 2),
+        mutate(missing = if_else(str_detect(name, rrts["legend"]), nr - 1, nr - 2),
                neededDust = case_when(
-                   str_detect(name, "c") ~ 40 * mssng,
-                   str_detect(name, "r") ~ 100 * mssng,
-                   str_detect(name, "e") ~ 400 * mssng,
-                   str_detect(name, "l") ~ 1600 * mssng
+                   str_detect(name, rrts["common"]) ~ craftInfo["common"] * missing,
+                   str_detect(name, rrts["rare"]) ~ craftInfo["rare"] * missing,
+                   str_detect(name, rrts["epic"]) ~ craftInfo["epic"] * missing,
+                   str_detect(name, rrts["legend"]) ~ craftInfo["legend"] * missing
                ))
     
+    # Do we have enough dust to craft all the missing cards?
     if(sum(df$neededDust, collection[[2]]) >= 0) {
         return(T)
     } else
         return(F)
 }
 
-CompleteCollectionNoDust <- function(collection) {
+#
+CompleteCollectionNoDust <- function(collection, rrts = rarities) {
+    
+    # Turn list into dataframe and find all missing cards
     df <-
         tibble(nr = unlist(collection[[1]], use.names = F),
                name = names(collection[[1]])) %>%
         mutate(complete = case_when(
-            str_detect(name, "l") & nr == 1 ~ T,
-            str_detect(name, "l") & nr == 0 ~ F,
+            str_detect(name, rrts["legend"]) & nr == 1 ~ T,
+            str_detect(name, rrts["legend"]) & nr == 0 ~ F,
             nr == 2 ~ T,
             nr == 0 | nr == 1 ~ F
         ))
     
+    # Are there any missing cards?
     if(all(df$complete)) {
         return(T)
     } else {
