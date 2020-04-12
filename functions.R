@@ -17,7 +17,7 @@ CreateCollection <-
     names(cllctn) <- allCards
     startDust <- 0
     
-    function(draw) {
+    function(draw, dupeProtect) {
         
         # Just return the collection
         if(draw != "") {
@@ -49,18 +49,19 @@ CreateCollection <-
 }
 
 #
-addCardFuncs <- map(setNames, CreateCollection)
-
-#
 OpenPack <-
-    function(AddCardFunc, space = rarities, draws = nrDraw, probs = pInfo[["pr"]]) {
+    function(AddCardFunc,
+             dupeProtect,
+             space = rarities,
+             draws = nrDraw,
+             probs = pInfo[["pr"]]) {
         
         # draw a number of random rarities
         pack <- as.list(sample(space, draws, replace = T, probs))
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
         
         # For the given rarity, choose card from the set specified by function
-        walk(pack, AddCardFunc)
+        walk(pack, AddCardFunc, dupeProtect = dupeProtect)
         
         # Return the pack rarity distribution
         return(pack)
@@ -108,5 +109,49 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
         return(T)
     } else {
         return(F)
+    }
+}
+
+# dupeProtect should be one of: none, packAndL, packAndAll
+PacksToCompletion <- function(useDust, setName, dupeProtect) {
+    
+    # Create function for adding cards to collection given a specific set
+    AddCardFunc <- CreateCollection(setName)
+    
+    # Prepopulate a list so we can keep a log of the packs we opened
+    packs <- vector("list", 3000)
+    
+    # Keep track of number packs opened
+    counter <- 1
+    
+    while(T) {
+        
+        # Add pack to log of packs
+        pack <- OpenPack(AddCardFunc, dupeProtect)
+        packs[[counter]] <- pack
+        
+        # Get collection
+        collection <- AddCardFunc("")
+        
+        # Using dust from opening packs to complete the collection?
+        if(useDust) {
+            
+            # if collection is complete, return pack log and number of packs
+            if(CompleteCollection(collection)) {
+                packs <- bind_rows(packs)
+                return(list(packs, counter, setName))
+            }
+            
+        # Not using dust
+        } else {
+            
+            # if collection is complete, return pack log and number of packs
+            if(CompleteCollectionNoDust(collection)) {
+                packs <- bind_rows(packs)
+                return(list(packs, counter, setName))
+            }
+        }
+        
+        counter <- counter + 1
     }
 }

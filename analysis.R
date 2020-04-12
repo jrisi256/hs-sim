@@ -1,29 +1,31 @@
 library(here)
 source(file.path(here(), "functions.R"))
 
-packs <- vector("list", 3000)
-counter <- 1
-completeCollectionCounter = 0
+# The standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean.
+# Think of the standard error as describing the standard deviation of the test statistic in question.
+# 
+# Whereas the standard deviation of the sample is the degree to which individuals within the sample differ from the sample
+# mean.
+# 
+# If the population standard deviation is finite, the standard error of the mean of the sample will tend to zero with
+# increasing sample size because the estimate of the population mean will improve.
+# 
+# While the standard deviation of the sample will tend to approximate the population standard deviation as the sample size
+# increases. 
 
-while(T) {
-    
-    # Add pack to log of packs
-    pack <- OpenPack(addCardFuncs$ashes)
-    packs[[counter]] <- pack
-    
-    # Get collection
-    collection <- addCardFuncs$ashes("")
-    
-    # Collection is complete using our dust
-    if(CompleteCollection(collection) & completeCollectionCounter == 0)
-        completeCollectionCounter <- counter
-        
-    # Collection is complete not using dust
-    if(CompleteCollectionNoDust(collection))
-        break()
-    
-    counter <- counter + 1
-}
+ashes <- CreateCollection("ashes")
+a <- ashes("common")
+aDf <- bind_rows(a[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount")
+
+a <- map(1:15, function(x) {PacksToCompletion(useDust = T, "ashes", "none")})
+b <- map_dbl(a, function(x) {
+    return(x[[2]])
+})
+
+bmean <- mean(b)
+bmedian <- median(b)
+bsd <- sd(b)
+bse <- bsd / sqrt(15)
 
 df_config <-
     packs %>%
@@ -32,14 +34,14 @@ df_config <-
                  names_to = "pickOrder",
                  values_to = "rarity") %>%
     group_by(id) %>%
-    mutate(nrC = sum(rarity == "c"),
-           nrR = sum(rarity == "r"),
-           nrE = sum(rarity == "e"),
-           nrL = sum(rarity == "l"),
-           nrGc = sum(rarity == "gc"),
-           nrGr = sum(rarity == "gr"),
-           nrGe = sum(rarity == "ge"),
-           nrGl = sum(rarity == "gl")) %>%
+    mutate(nrC = sum(rarity == "common"),
+           nrR = sum(rarity == "rare"),
+           nrE = sum(rarity == "epic"),
+           nrL = sum(rarity == "legend"),
+           nrGc = sum(rarity == "goldc"),
+           nrGr = sum(rarity == "goldr"),
+           nrGe = sum(rarity == "golde"),
+           nrGl = sum(rarity == "goldl")) %>%
     select(-pickOrder, -rarity)
 # %>%
 #     distinct() %>%
