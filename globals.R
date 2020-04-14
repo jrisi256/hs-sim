@@ -33,7 +33,7 @@ sets <- map(list(c(92, 40, 49, 50, 49, 49, 49, 49, 48, 49, 49, 49, 49, 49, 52),
                 return(x)},
             names = setNames)
 
-names(sets) <- rarities[1:4]
+names(sets) <- rarities[c("common", "rare", "epic", "legend")]
 
 # probabilities of pulling certain rarities as well as dust/craft values
 pInfo <- map(list(pr = nrRarities / sum(nrRarities),

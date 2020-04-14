@@ -116,7 +116,7 @@ PacksToCompletion <- function(useDust, setName) {
     AddCardFunc <- CreateCollection(setName)
     
     # Prepopulate a list so we can keep a log of the packs we opened
-    packs <- vector("list", 3000)
+    packs <- vector("list", 10000)
     
     # Keep track of number packs opened
     counter <- 1
@@ -143,4 +143,48 @@ PacksToCompletion <- function(useDust, setName) {
         
         counter <- counter + 1
     }
+}
+
+#
+RunSimulation <- function(nrRuns, setLabels = setNames) {
+
+    # Prepopulate lists
+    nrPacksOpenedList <- vector("list", nrRuns)
+    dustAccumulatedList <- vector("list", nrRuns)
+    
+    # Each run, simulate how many packs to a complete collection for each set
+    for(i in seq(nrRuns)) {
+        
+        # For each completed set, return total number of packs opened as a df
+        packLog <-
+            map(as.list(setLabels),
+                function(x) {PacksToCompletion(useDust = T, setName = x)})
+        
+        # Combine column-wise # of packs needed to be opened to complete a set
+        nrPacksOpenedList[[i]] <- map_dfc(packLog, function(df) {return(nrow(df))})
+        names(nrPacksOpenedList)[i] <- i
+        
+        # List of dfs where each df tracks dust total after each pack was opened
+        dustAccumulatedList[[i]] <-
+            pmap(list(packLog, names(packLog)), function(dustDf, setName) {
+                dustDf %>%
+                    select(dust) %>%
+                    mutate(set = setName,
+                           packNr = row_number(),
+                           run = i)})
+    }
+    
+    # Turn # of packs opened for each set for each simulation run into nice df
+    nrPacksOpenedDf <-
+        bind_rows(nrPacksOpenedList) %>%
+        mutate(run = names(nrPacksOpenedList)) %>%
+        pivot_longer(cols = -matches('run'),
+                     names_to = "set",
+                     values_to = "nrPacks")
+
+    # Turn dust total after each pack for each set for each sim run into nice df
+    dustAccumulatedDf <- dustAccumulatedList %>% flatten_dfr()
+    
+    # Return these two dataframes
+    return(list(nrPacks = nrPacksOpenedDf, dustTotals = dustAccumulatedDf))
 }
