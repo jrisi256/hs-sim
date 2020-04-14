@@ -13,20 +13,48 @@ source(file.path(here(), "functions.R"))
 # While the standard deviation of the sample will tend to approximate the population standard deviation as the sample size
 # increases. 
 
+
+################### Brain storming ways I can keep track of collected vs. collected and dusted
 ashes <- CreateCollection("ashes")
-a <- ashes("common")
-aDf <- bind_rows(a[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount")
+aCo <- ashes("common")
+aDf <- bind_rows(aCo[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount")
 
-a <- map(1:15, function(x) {PacksToCompletion(useDust = T, "ashes", "none")})
-b <- map_dbl(a, function(x) {
-    return(x[[2]])
-})
+# Brain storming ways I can open packs until a full collection for each set an arbitrary number of times
+# And then finding the stats
+results <- vector("list", 2)
+resultsDust <- vector("list", 2)
 
-bmean <- mean(b)
-bmedian <- median(b)
-bsd <- sd(b)
-bse <- bsd / sqrt(15)
+for(i in seq(2)) {
+    a <- map(as.list(setNames), function(x) {PacksToCompletion(useDust = T, setName = x)})
+    results[[i]] <- map_dfc(a, function(x) {return(nrow(x))})
+    
+    resultsDust[[i]] <-
+        pmap(list(a, names(a)),
+             function(dustDf, setName) {
+                 dustDf %>%
+                     select(dust) %>%
+                     mutate(set = setName,
+                            packNr = row_number(),
+                            iteration = i)
+                 })
+}
 
+resultsDf <-
+    bind_rows(results) %>%
+    pivot_longer(cols = everything(),
+                 names_to = "set",
+                 values_to = "nrPacks") %>%
+    group_by(set) %>%
+    summarise(mean = mean(nrPacks),
+              sd = sd(nrPacks),
+              se = sd / sqrt(n()),
+              median = median(nrPacks),
+              n = n())
+
+# Trying to track the accumulation of dust across packs
+b <- map_dfr(resultsDust, function(x) {bind_rows(x)})
+
+# This is old code for insuring the number of commons/rares/etc. matched the probs I supplied, roughly.
 df_config <-
     packs %>%
     mutate(id = row_number()) %>%
