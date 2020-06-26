@@ -90,7 +90,7 @@ CompleteCollection <-
 #
 CompleteCollectionNoDust <- function(collection, rrts = rarities) {
     
-    # Turn list into dataframe and find all missing cards
+    # Turn list into data frame and find all missing cards
     df <-
         tibble(nr = unlist(collection[[1]], use.names = F),
                name = names(collection[[1]])) %>%
@@ -115,7 +115,7 @@ PacksToCompletion <- function(useDust, setName) {
     # Create function for adding cards to collection given a specific set
     AddCardFunc <- CreateCollection(setName)
     
-    # Prepopulate a list so we can keep a log of the packs we opened
+    # Pre-populate a list so we can keep a log of the packs we opened
     packs <- vector("list", 10000)
     
     # Keep track of number packs opened
@@ -146,9 +146,9 @@ PacksToCompletion <- function(useDust, setName) {
 }
 
 #
-RunSimulation <- function(nrRuns, setLabels = setNames) {
+RunSimulation <- function(nrRuns, useDust, setLabels = setNames) {
 
-    # Prepopulate lists
+    # Pre-populate lists
     nrPacksOpenedList <- vector("list", nrRuns)
     dustAccumulatedList <- vector("list", nrRuns)
     
@@ -158,7 +158,7 @@ RunSimulation <- function(nrRuns, setLabels = setNames) {
         # For each completed set, return total number of packs opened as a df
         packLog <-
             map(as.list(setLabels),
-                function(x) {PacksToCompletion(useDust = T, setName = x)})
+                function(x) {PacksToCompletion(useDust = useDust, setName = x)})
         
         # Combine column-wise # of packs needed to be opened to complete a set
         nrPacksOpenedList[[i]] <- map_dfc(packLog, function(df) {return(nrow(df))})
@@ -180,11 +180,15 @@ RunSimulation <- function(nrRuns, setLabels = setNames) {
         mutate(run = names(nrPacksOpenedList)) %>%
         pivot_longer(cols = -matches('run'),
                      names_to = "set",
-                     values_to = "nrPacks")
+                     values_to = "nrPacks") %>%
+        mutate(useDust = useDust)
 
     # Turn dust total after each pack for each set for each sim run into nice df
-    dustAccumulatedDf <- dustAccumulatedList %>% flatten_dfr()
+    dustAccumulatedDf <-
+        dustAccumulatedList %>%
+        flatten_dfr() %>%
+        mutate(useDust = useDust)
     
-    # Return these two dataframes
+    # Return these two data frames
     return(list(nrPacks = nrPacksOpenedDf, dustTotals = dustAccumulatedDf))
 }

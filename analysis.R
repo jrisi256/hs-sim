@@ -13,7 +13,18 @@ source(file.path(here(), "functions.R"))
 # While the standard deviation of the sample will tend to approximate the population standard deviation as the sample size
 # increases. 
 
-a <- RunSimulation(2)
+a <- pmap(list(c(2, 2), c(T, F)), RunSimulation)
+a2 <- pmap(a, function(...) {bind_rows(...)})
+    
+a3 <- bind_rows(a[[1]]["nrPacks"], a[[2]]["nrPacks"])
+a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
+
+################################# Playing around with duplicate protection within packs
+ashesFunc <- CreateCollection("ashes")
+b <- OpenPack(ashesFunc)
+
+for(i in 1:100) pick <- ashesFunc("common")
+collection <- ashesFunc("")
 
 ################### Brain storming ways I can keep track of collected vs. collected and dusted
 ashes <- CreateCollection("ashes")
