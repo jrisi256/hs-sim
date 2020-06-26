@@ -23,7 +23,7 @@ a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
 ashesFunc <- CreateCollection("ashes")
 b <- OpenPack(ashesFunc)
 
-for(i in 1:100) pick <- ashesFunc("common")
+for(i in 1:100) pick <- ashesFunc("goldc")
 collection <- ashesFunc("")
 
 ################### Brain storming ways I can keep track of collected vs. collected and dusted

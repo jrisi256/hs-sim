@@ -17,22 +17,32 @@ CreateCollection <-
     names(cllctn) <- allCards
     startDust <- 0
     
-    function(draw) {
+    # Keep track of cards opened in current pack to do pack dupe protection
+    openingPack <- c(rep("", nrDraw))
+    
+    function(draw, drawNr) {
         
-        # Just return the collection
+        # pick a card of "draw" rarity from target set, else return collection
         if(draw != "") {
             
-            # if we drew a golden card, dust it
             gold <- c(rrty["goldc"], rrty["goldr"], rrty["golde"], rrty["goldl"])
+            
+            # Pick a card with the given rarity as specified by "draw"
+            normalizeDraw <-
+                case_when(draw == "goldc" ~ "common",
+                          draw == "goldr" ~ "rare",
+                          draw == "golde" ~ "epic",
+                          draw == "goldl" ~ "legend",
+                          T ~ draw)
+            card <- allSets[[normalizeDraw]][set] %>% seq() %>% sample(size = 1)
+            idx <- paste0(normalizeDraw, card)
+            
+            # if we drew a golden card, dust it
             if(draw %in% gold) {
                 startDust <<- startDust + unname(dInfo[draw])
                 
             # else if the card is not golden
             } else {
-                
-                # Pick a card with the given rarity as specified by "draw"
-                card <- allSets[[draw]][set] %>% seq() %>% sample(size = 1)
-                idx <- paste0(draw, card)
                 
                 # If we already have full copies of the card, dust it
                 if(cllctn[[idx]] == 2 | (draw == rrty["legend"] & cllctn[[idx]] == 1)) {
@@ -44,6 +54,11 @@ CreateCollection <-
                 }
             }
         }
+        
+        if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
+        openingPack[drawNr] <<- idx
+        print(openingPack)
+        
         return(list(cllctn, startDust))
     }
 }
@@ -58,12 +73,12 @@ OpenPack <-
         
         # For the given rarity, choose card from the set specified by function
         # Then we capture our cumulative dust total thus far
-        openedPack <- map(pack, AddCardFunc)
+        openedPack <- pmap(list(pack, 1:length(pack)), AddCardFunc)
         cDust <- openedPack[[draws]][[2]]
         
         # Return the pack rarity distribution
         return(as.list(c(pack, dust = cDust)))
-    }
+}
 
 #
 CompleteCollection <-
