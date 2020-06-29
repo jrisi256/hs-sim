@@ -13,17 +13,22 @@ source(file.path(here(), "functions.R"))
 # While the standard deviation of the sample will tend to approximate the population standard deviation as the sample size
 # increases. 
 
-a <- pmap(list(c(2, 2), c(T, F)), RunSimulation)
+a <- pmap(list(c(1, 1), c(T, T), c(T, F)), RunSimulation)
 a2 <- pmap(a, function(...) {bind_rows(...)})
     
 a3 <- bind_rows(a[[1]]["nrPacks"], a[[2]]["nrPacks"])
 a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
 
-################################# Playing around with duplicate protection within packs
-ashesFunc <- CreateCollection("ashes")
-b <- OpenPack(ashesFunc)
+############################################################# See the pack logs
+b <- PacksToCompletion(T, F, "ashes")
 
-for(i in 1:100) pick <- ashesFunc("goldc")
+################################# Playing around with duplicate protection within packs
+ashesFunc <- CreateCollection("ashes", T)
+b <- map_dfr(1:400, function(x) {OpenPack(ashesFunc)})
+
+# add cards one at a time
+for(i in 1:100) pick <- ashesFunc("goldc", 1) # just adds dust
+for(i in 1:100) pick <- ashesFunc("common", 1) # adds cards
 collection <- ashesFunc("")
 
 ################### Brain storming ways I can keep track of collected vs. collected and dusted

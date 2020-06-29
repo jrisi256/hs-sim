@@ -3,7 +3,8 @@ source(file.path(here(), "globals.R"))
 
 #
 CreateCollection <-
-    function(set, rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
+    function(set, packDupeProtect,
+             rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
     
     # make character vectors for each card which will act as names in our list
     commons <- paste0(rrty["common"], seq(allSets$common[set]))
@@ -27,14 +28,35 @@ CreateCollection <-
             
             gold <- c(rrty["goldc"], rrty["goldr"], rrty["golde"], rrty["goldl"])
             
-            # Pick a card with the given rarity as specified by "draw"
-            normalizeDraw <-
-                case_when(draw == "goldc" ~ "common",
-                          draw == "goldr" ~ "rare",
-                          draw == "golde" ~ "epic",
-                          draw == "goldl" ~ "legend",
-                          T ~ draw)
-            card <- allSets[[normalizeDraw]][set] %>% seq() %>% sample(size = 1)
+            # Normalize the rarity by removing gold from the rarity name
+            normalizeDraw <- case_when(draw == "goldc" ~ "common",
+                                       draw == "goldr" ~ "rare",
+                                       draw == "golde" ~ "epic",
+                                       draw == "goldl" ~ "legend",
+                                       TRUE ~ draw)
+            
+            # If no pack-level dupe protection, select from whole set
+            if(!packDupeProtect) {
+                sampleSpace <- allSets[[normalizeDraw]][set]
+                
+            # If yes, don't select cards already selected twice (once for l)
+            } else if(packDupeProtect) {
+                openedRarities <- openingPack[str_detect(openingPack, normalizeDraw)]
+                countRarities <- table(openedRarities)
+                
+                # Check if the draw is legendary or not
+                if(normalizeDraw != "legend") {
+                    openedRarities <- openedRarities[countRarities == 2]
+                } else if(normalizeDraw == "legend") {
+                    openedRarities <- openedRarities[countRarities == 1]
+                }
+                
+                sampleSpace <- setdiff(allSets[[normalizeDraw]][set],
+                                       openedRarities)
+            }
+            
+            # Pick a card from the sample space
+            card <- sampleSpace %>% seq() %>% sample(size = 1)
             idx <- paste0(normalizeDraw, card)
             
             # if we drew a golden card, dust it
@@ -53,11 +75,10 @@ CreateCollection <-
                     cllctn[[idx]] <<- cllctn[[idx]] + 1
                 }
             }
+            
+            if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
+            openingPack[drawNr] <<- idx
         }
-        
-        if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
-        openingPack[drawNr] <<- idx
-        print(openingPack)
         
         return(list(cllctn, startDust))
     }
@@ -125,10 +146,11 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
 }
 
 #
-PacksToCompletion <- function(useDust, setName) {
+PacksToCompletion <- function(useDust, packDupeProtect, setName) {
     
     # Create function for adding cards to collection given a specific set
-    AddCardFunc <- CreateCollection(setName)
+    AddCardFunc <- CreateCollection(setName,
+                                    packDupeProtect = packDupeProtect)
     
     # Pre-populate a list so we can keep a log of the packs we opened
     packs <- vector("list", 10000)
@@ -161,7 +183,8 @@ PacksToCompletion <- function(useDust, setName) {
 }
 
 #
-RunSimulation <- function(nrRuns, useDust, setLabels = setNames) {
+RunSimulation <- function(nrRuns, useDust, packDupeProtect,
+                          setLabels = setNames) {
 
     # Pre-populate lists
     nrPacksOpenedList <- vector("list", nrRuns)
@@ -173,7 +196,9 @@ RunSimulation <- function(nrRuns, useDust, setLabels = setNames) {
         # For each completed set, return total number of packs opened as a df
         packLog <-
             map(as.list(setLabels),
-                function(x) {PacksToCompletion(useDust = useDust, setName = x)})
+                function(x) {PacksToCompletion(useDust = useDust,
+                                               packDupeProtect = packDupeProtect,
+                                               setName = x)})
         
         # Combine column-wise # of packs needed to be opened to complete a set
         nrPacksOpenedList[[i]] <- map_dfc(packLog, function(df) {return(nrow(df))})
