@@ -221,13 +221,15 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect,
         pivot_longer(cols = -matches('run'),
                      names_to = "set",
                      values_to = "nrPacks") %>%
-        mutate(useDust = useDust)
+        mutate(useDust = useDust,
+               packDupeProtect = packDupeProtect)
 
     # Turn dust total after each pack for each set for each sim run into nice df
     dustAccumulatedDf <-
         dustAccumulatedList %>%
         flatten_dfr() %>%
-        mutate(useDust = useDust)
+        mutate(useDust = useDust,
+               packDupeProtect = packDupeProtect)
     
     # Return these two data frames
     return(list(nrPacks = nrPacksOpenedDf, dustTotals = dustAccumulatedDf))
