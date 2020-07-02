@@ -86,10 +86,39 @@ CreateCollection <-
 
 #
 OpenPack <-
-    function(AddCardFunc, space = rarities, draws = nrDraw, probs = pInfo[["pr"]]) {
+    function(AddCardFunc, guaranteePityTimer = 0,
+             space = rarities, draws = nrDraw, probs = pInfo[["pr"]]) {
         
-        # draw a number of random rarities
-        pack <- as.list(sample(space, draws, replace = T, probs))
+        # Scale up ratio of legends to golden legends to account for pity timer
+        guaranteePityTimerGold <-
+            pInfo[["pr"]][["goldl"]] * guaranteePityTimer / pInfo[["pr"]][["legend"]]
+        
+        # Pity Timer for opening a legend in the 1st 10 packs, defaults to 0
+        guaranteedLegend <-
+            sample(c("nolegend", "legend", "goldl"),
+                   size = 1,
+                   probs = c(1 - guaranteePityTimer,
+                             guaranteePityTimer - guaranteePityTimerGold,
+                             guaranteePityTimerGold))
+        
+        # Didn't draw a legend or pity timer is off, create pack like normal
+        if(guaranteedLegend == "nolegend") {
+            pack <- as.list(sample(space, draws, replace = T, probs))
+        
+        # Drew a legend, only need to draw 4 cards from modified distribution   
+        } else {
+            
+            legendProb <-
+                (pInfo[["pr"]][["legend"]] + pInfo[["pr"]][["goldl"]]) / 6
+            
+            probsMod <- pInfo[["pr"]]
+            probsMod <- probsMod[!(names(probsMod) %in% c("legend", "goldl"))]
+            probsMod <- probsMod + legendProb
+            
+            pack <- as.list(c(guaranteedLegend,
+                              sample(space, draw - 1, replace = T, probs)))
+        }
+        
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
         
         # For the given rarity, choose card from the set specified by function
@@ -146,7 +175,8 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
 }
 
 #
-PacksToCompletion <- function(useDust, packDupeProtect, setName) {
+PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
+                              setName) {
     
     # Create function for adding cards to collection given a specific set
     AddCardFunc <- CreateCollection(setName,
@@ -160,8 +190,15 @@ PacksToCompletion <- function(useDust, packDupeProtect, setName) {
     
     while(T) {
         
+        # If we're guaranteeing a legend in 1st 10 packs, use a pity timer
+        if(guaranteeLegend & counter <= 10) {
+            pack <- OpenPack(AddCardFunc, guaranteePityTimer = counter / 10)
+        # No legend guarantee or opened at least 10 packs, don't use pity timer
+        } else if(!guaranteeLegend | counter > 10) {
+            pack <- OpenPack(AddCardFunc)
+        }
+        
         # Add pack to log of packs
-        pack <- OpenPack(AddCardFunc)
         packs[[counter]] <- pack
         
         # Get collection
@@ -183,7 +220,7 @@ PacksToCompletion <- function(useDust, packDupeProtect, setName) {
 }
 
 #
-RunSimulation <- function(nrRuns, useDust, packDupeProtect,
+RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
                           setLabels = setNames) {
 
     # Pre-populate lists
@@ -196,9 +233,11 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect,
         # For each completed set, return total number of packs opened as a df
         packLog <-
             map(as.list(setLabels),
-                function(x) {PacksToCompletion(useDust = useDust,
-                                               packDupeProtect = packDupeProtect,
-                                               setName = x)})
+                function(x) {
+                    PacksToCompletion(useDust = useDust,
+                                      packDupeProtect = packDupeProtect,
+                                      guaranteeLegend = guaranteeLegend,
+                                      setName = x)})
         
         # Combine column-wise # of packs needed to be opened to complete a set
         nrPacksOpenedList[[i]] <- map_dfc(packLog, function(df) {return(nrow(df))})
