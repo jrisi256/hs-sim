@@ -97,9 +97,9 @@ OpenPack <-
         guaranteedLegend <-
             sample(c("nolegend", "legend", "goldl"),
                    size = 1,
-                   probs = c(1 - guaranteePityTimer,
-                             guaranteePityTimer - guaranteePityTimerGold,
-                             guaranteePityTimerGold))
+                   prob = c(1 - guaranteePityTimer,
+                            guaranteePityTimer - guaranteePityTimerGold,
+                            guaranteePityTimerGold))
         
         # Didn't draw a legend or pity timer is off, create pack like normal
         if(guaranteedLegend == "nolegend") {
@@ -116,7 +116,7 @@ OpenPack <-
             probsMod <- probsMod + legendProb
             
             pack <- as.list(c(guaranteedLegend,
-                              sample(space, draw - 1, replace = T, probs)))
+                              sample(space, draws - 1, replace = T, probs)))
         }
         
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
@@ -193,6 +193,11 @@ PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
         # If we're guaranteeing a legend in 1st 10 packs, use a pity timer
         if(guaranteeLegend & counter <= 10) {
             pack <- OpenPack(AddCardFunc, guaranteePityTimer = counter / 10)
+            
+            # If we opened a legendary or golden legendary, turn off pity timer
+            if(any(pack == "legend" | pack == "goldl"))
+                guaranteeLegend = F
+            
         # No legend guarantee or opened at least 10 packs, don't use pity timer
         } else if(!guaranteeLegend | counter > 10) {
             pack <- OpenPack(AddCardFunc)
@@ -261,14 +266,16 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
                      names_to = "set",
                      values_to = "nrPacks") %>%
         mutate(useDust = useDust,
-               packDupeProtect = packDupeProtect)
+               packDupeProtect = packDupeProtect,
+               guaranteeLegend = guaranteeLegend)
 
     # Turn dust total after each pack for each set for each sim run into nice df
     dustAccumulatedDf <-
         dustAccumulatedList %>%
         flatten_dfr() %>%
         mutate(useDust = useDust,
-               packDupeProtect = packDupeProtect)
+               packDupeProtect = packDupeProtect,
+               guaranteeLegend = guaranteeLegend)
     
     # Return these two data frames
     return(list(nrPacks = nrPacksOpenedDf, dustTotals = dustAccumulatedDf))
