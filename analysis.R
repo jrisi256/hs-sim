@@ -33,9 +33,14 @@ for(i in 1:100) pick <- ashesFunc("common", 1) # adds cards
 collection <- ashesFunc("")
 
 ################### Brain storming ways I can keep track of collected vs. collected and dusted
-ashes <- CreateCollection("ashes")
-aCo <- ashes("common")
+ashes <- CreateCollection("ashes", T)
+aCo <- ashes("common", 1)
 aDf <- bind_rows(aCo[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount")
+
+# possibly filter out legends
+aCo2 <- ashes("legend", 1)
+aDf2 <- bind_rows(aCo2[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount") %>%
+    filter(!(str_detect(id, "legend") & amount == 1))
 
 # This is old code for insuring the number of commons/rares/etc. matched the probs I supplied, roughly.
 df_config <-

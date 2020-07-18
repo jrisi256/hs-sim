@@ -78,6 +78,7 @@ CreateCollection <-
             
             if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
             openingPack[drawNr] <<- idx
+            a <- openingPack
         }
         
         return(list(cllctn, startDust))
