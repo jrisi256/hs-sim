@@ -3,7 +3,7 @@ source(file.path(here(), "globals.R"))
 
 #
 CreateCollection <-
-    function(set, packDupeProtect,
+    function(set, packDupeProtect, legendDupeProtect,
              rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
     
     # make character vectors for each card which will act as names in our list
@@ -23,6 +23,9 @@ CreateCollection <-
     
     function(draw, drawNr) {
         
+        # If there are no blanks, it means the pack is full and can be reset
+        if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
+        
         # pick a card of "draw" rarity from target set, else return collection
         if(draw != "") {
             
@@ -35,28 +38,43 @@ CreateCollection <-
                                        draw == "goldl" ~ "legend",
                                        TRUE ~ draw)
             
-            # If no pack-level dupe protection, select from whole set
-            if(!packDupeProtect) {
-                sampleSpace <- allSets[[normalizeDraw]][set]
+            # By default, select from whole set
+            sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
+            
+            # If we're drawing a legendary, and have dupe protect on legendary
+            if(legendDupeProtect & normalizeDraw == "legend") {
                 
-            # If yes, don't select cards already selected twice (once for l)
-            } else if(packDupeProtect) {
+                # Find all legends in our collection
+                collectedLegends <-
+                    str_extract(names(cllctn[str_detect(names(cllctn), "legend") &
+                                             cllctn == 1]),
+                                "[0-9]{1,2}")
+                
+                # Remove all legends already collected from the sample space
+                sampleSpace <- setdiff(sampleSpace, collectedLegends)
+                
+                # if sample space is empty, means all legends collected
+                if(length(sampleSpace) == 0)
+                    sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
+                
+            # Pack dupe protect, don't pick cards already picked twice
+            } else if(packDupeProtect & normalizeDraw != "legend") {
+                
+                # Find nr. of cards in current pack with "normalizeDraw" rarity
                 openedRarities <- openingPack[str_detect(openingPack, normalizeDraw)]
                 countRarities <- table(openedRarities)
                 
-                # Check if the draw is legendary or not
-                if(normalizeDraw != "legend") {
-                    openedRarities <- openedRarities[countRarities == 2]
-                } else if(normalizeDraw == "legend") {
-                    openedRarities <- openedRarities[countRarities == 1]
-                }
+                # Keep only those cards drawn max amount
+                countRarities <- countRarities[countRarities == 2]
                 
-                sampleSpace <- setdiff(allSets[[normalizeDraw]][set],
-                                       openedRarities)
+                # Remove all cards drawn twice from the sample space
+                sampleSpace <- setdiff(sampleSpace,
+                                       str_extract(names(countRarities),
+                                                   "[0-9]{1,2}"))
             }
             
             # Pick a card from the sample space
-            card <- sampleSpace %>% seq() %>% sample(size = 1)
+            card <- sampleSpace %>% sample(size = 1)
             idx <- paste0(normalizeDraw, card)
             
             # if we drew a golden card, dust it
@@ -76,11 +94,9 @@ CreateCollection <-
                 }
             }
             
-            if(all(openingPack != "")) openingPack <<- rep("", nrDraw)
+            # Add card to the pack
             openingPack[drawNr] <<- idx
-            a <- openingPack
         }
-        
         return(list(cllctn, startDust))
     }
 }
@@ -94,7 +110,7 @@ OpenPack <-
         guaranteePityTimerGold <-
             pInfo[["pr"]][["goldl"]] * guaranteePityTimer / pInfo[["pr"]][["legend"]]
         
-        # Pity Timer for opening a legend in the 1st 10 packs, defaults to 0
+        # Pity timer for opening a legend in the 1st 10 packs, defaults to 0
         guaranteedLegend <-
             sample(c("nolegend", "legend", "goldl"),
                    size = 1,
@@ -109,15 +125,20 @@ OpenPack <-
         # Drew a legend, only need to draw 4 cards from modified distribution   
         } else {
             
+            # Distribute probability of opening legend to other rarities evenly
             legendProb <-
                 (pInfo[["pr"]][["legend"]] + pInfo[["pr"]][["goldl"]]) / 6
             
+            # Remove legend probabilities and add them to other rarities
             probsMod <- pInfo[["pr"]]
             probsMod <- probsMod[!(names(probsMod) %in% c("legend", "goldl"))]
             probsMod <- probsMod + legendProb
             
+            # Remove legends from rarities
+            spaceMod <- space[!(names(space) %in% c("legend", "goldl"))]
+            
             pack <- as.list(c(guaranteedLegend,
-                              sample(space, draws - 1, replace = T, probs)))
+                              sample(spaceMod, draws - 1, replace = T, probsMod)))
         }
         
         names(pack) <- c("d1", "d2", "d3", "d4", "d5")
@@ -177,11 +198,12 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
 
 #
 PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
-                              setName) {
+                              legendDupeProtect, setName) {
     
     # Create function for adding cards to collection given a specific set
     AddCardFunc <- CreateCollection(setName,
-                                    packDupeProtect = packDupeProtect)
+                                    packDupeProtect = packDupeProtect,
+                                    legendDupeProtect = legendDupeProtect)
     
     # Pre-populate a list so we can keep a log of the packs we opened
     packs <- vector("list", 10000)
@@ -227,7 +249,7 @@ PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
 
 #
 RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
-                          setLabels = setNames) {
+                          legendDupeProtect, setLabels = setNames) {
 
     # Pre-populate lists
     nrPacksOpenedList <- vector("list", nrRuns)
@@ -243,6 +265,7 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
                     PacksToCompletion(useDust = useDust,
                                       packDupeProtect = packDupeProtect,
                                       guaranteeLegend = guaranteeLegend,
+                                      legendDupeProtect = legendDupeProtect,
                                       setName = x)})
         
         # Combine column-wise # of packs needed to be opened to complete a set
@@ -268,7 +291,8 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
                      values_to = "nrPacks") %>%
         mutate(useDust = useDust,
                packDupeProtect = packDupeProtect,
-               guaranteeLegend = guaranteeLegend)
+               guaranteeLegend = guaranteeLegend,
+               legendDupeProtect = legendDupeProtect)
 
     # Turn dust total after each pack for each set for each sim run into nice df
     dustAccumulatedDf <-
@@ -276,7 +300,8 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
         flatten_dfr() %>%
         mutate(useDust = useDust,
                packDupeProtect = packDupeProtect,
-               guaranteeLegend = guaranteeLegend)
+               guaranteeLegend = guaranteeLegend,
+               legendDupeProtect = legendDupeProtect)
     
     # Return these two data frames
     return(list(nrPacks = nrPacksOpenedDf, dustTotals = dustAccumulatedDf))
