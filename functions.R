@@ -3,7 +3,7 @@ source(file.path(here(), "globals.R"))
 
 #
 CreateCollection <-
-    function(set, packDupeProtect, legendDupeProtect, allDupeProtect,
+    function(set, useDust, packDupeProtect, legendDupeProtect, allDupeProtect,
              rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
     
     # make character vectors for each card which will act as names in our list
@@ -115,7 +115,7 @@ CreateCollection <-
             pCllctn[[idx]] <<- pCllctn[[idx]] + 1
             
             # if we drew a golden card, dust it
-            if(draw %in% gold) {
+            if(draw %in% gold & useDust) {
               startDust <<- startDust + unname(dInfo[draw])
             
             } else {
@@ -237,7 +237,7 @@ PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
                               legendDupeProtect, allDupeProtect, setName) {
     
     # Create function for adding cards to collection given a specific set
-    AddCardFunc <- CreateCollection(setName,
+    AddCardFunc <- CreateCollection(setName, useDust = useDust,
                                     packDupeProtect = packDupeProtect,
                                     legendDupeProtect = legendDupeProtect,
                                     allDupeProtect = allDupeProtect)
