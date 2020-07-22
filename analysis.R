@@ -20,9 +20,18 @@ a3 <- bind_rows(a[[1]]["nrPacks"], a[[2]]["nrPacks"])
 a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
 
 ############################################################# See the pack logs
-b <- PacksToCompletion(T, T, F, F, "ashes")
-b2 <- PacksToCompletion(T, T, T, T, "ashes")
-b3 <- PacksToCompletion(F, T, T, F, "ashes")
+b1 <- PacksToCompletion(F, F, F, F, F, "ashes")
+b1d <- PacksToCompletion(T, F, F, F, F, "ashes")
+
+b2 <- PacksToCompletion(F, T, T, T, F, "ashes")
+a2d <- b2 %>% mutate(id = row_number()) %>% filter_all(any_vars(. == "legend" | . == "goldl")) %>%
+    mutate(diff = id - lag(id), mean = mean(diff, na.rm = T))
+b2d <- PacksToCompletion(T, T, T, T, F, "ashes")
+
+b3 <- PacksToCompletion(F, F, T, F, T, "ashes")
+a3 <- b3 %>% mutate(id = row_number()) %>% filter_all(any_vars(. == "legend" | . == "goldl")) %>%
+    mutate(diff = id - lag(id), mean = mean(diff, na.rm = T))
+b3d <- PacksToCompletion(T, F, T, F, T, "ashes")
 
 # Playing around with pack dupe protection and legend pity timer and legend dupe
 ashesFunc <- CreateCollection("ashes", T, T)
