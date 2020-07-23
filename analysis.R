@@ -1,77 +1,63 @@
 library(here)
 source(file.path(here(), "functions.R"))
 
-# The standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean.
-# Think of the standard error as describing the standard deviation of the test statistic in question.
-# 
-# Whereas the standard deviation of the sample is the degree to which individuals within the sample differ from the sample
-# mean.
-# 
-# If the population standard deviation is finite, the standard error of the mean of the sample will tend to zero with
-# increasing sample size because the estimate of the population mean will improve.
-# 
-# While the standard deviation of the sample will tend to approximate the population standard deviation as the sample size
-# increases. 
-
-a <- pmap(list(c(1, 1), c(T, T), c(T, F), c(T, F), c(T, F)), RunSimulation)
+startTime <- proc.time()
+a <- pmap(list(nrRuns = c(25, 25, 25),
+               useDust = c(F, T, T),
+               keepGold = c(T, T, F),
+               packDupeProtect = c(F, F, F),
+               guaranteeLegend = c(T, T, T),
+               legendDupeProtect = c(F, F, F),
+               allDupeProtect = c(T, T, T),
+               setLabels = c(list(setNames[c("classic", "ashes")]),
+                             list(setNames[c("classic", "ashes")]),
+                             list(setNames[c("classic", "ashes")]))),
+          RunSimulation)
+endTime <- proc.time() - startTime
 a2 <- pmap(a, function(...) {bind_rows(...)})
+
+startTime <- proc.time()
+a <- pmap(list(nrRuns = c(50, 50, 50),
+               useDust = c(T, T, T),
+               keepGold = c(F, F, F),
+               packDupeProtect = c(F, T, F),
+               guaranteeLegend = c(F, T, T),
+               legendDupeProtect = c(F, T, F),
+               allDupeProtect = c(F, F, T),
+               setLabels = c(list(setNames[c("classic", "ashes")]),
+                             list(setNames[c("classic", "ashes")]),
+                             list(setNames[c("classic", "ashes")]))),
+          RunSimulation)
+endTime <- proc.time() - startTime
+a2 <- pmap(a, function(...) {bind_rows(...)})
+
+# qt(0.995, df = n - 1) is the t-statistic (because we don't know the true population std. dev.)
+# Because we don't know the true pop. std. dev., cannot use z-statistic
+# See khan academy
+# Degrees of freedom is sample size - 1
+# 99% confidence interval, leaving 0.05% unfilled at both ends (so 0.005, and .995)
+# 95% CI, leaving 0.025% unfilled at both ends (so 0.025, and 0.975)
+# To find confidence interval: mean +- t-statistic * (sd / sqrt(n))
+# (sd / sqrt(n)) is the standard error of the mean
+# t-statistic is your confidence interval (95%, 99%, whatever) and the degree of freedom (sample - 1)
+# t-statistic * standard error of the mean is your margin of error
+# you can use a z-statistic for estimating a sample size given a margin of error and desired confidence interval
+# you would just assume your sample std. dev. is the true pop. std. dev., this should really reinforce it's an estimate
+# n = (z-statistic * sample std. dev. (assumed pop.) / margin of error) ^ 2
+
+a2summ <-
+    a2$nrPacks %>%
+    group_by_at(vars(-matches("run|nrPacks"))) %>%
+    summarise(n = n(),
+              mean = mean(nrPacks),
+              sd = sd(nrPacks),
+              se = sd / sqrt(n),
+              moe = qt(0.975, df = n - 1) * se,
+              confintu = mean + moe,
+              confintl = mean - moe)
     
+aNorm <- a2$nrPacks %>% filter(useDust == T, keepGold == T)
+ggplot(aNorm, aes(x = nrPacks)) + geom_histogram(bins = 40) + theme_bw()
+
 a3 <- bind_rows(a[[1]]["nrPacks"], a[[2]]["nrPacks"])
 a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
-
-############################################################# See the pack logs
-b1 <- PacksToCompletion(F, F, F, F, F, "ashes")
-b1d <- PacksToCompletion(T, F, F, F, F, "ashes")
-
-b2 <- PacksToCompletion(F, T, T, T, F, "ashes")
-a2d <- b2 %>% mutate(id = row_number()) %>% filter_all(any_vars(. == "legend" | . == "goldl")) %>%
-    mutate(diff = id - lag(id), mean = mean(diff, na.rm = T))
-b2d <- PacksToCompletion(T, T, T, T, F, "ashes")
-
-b3 <- PacksToCompletion(F, F, T, F, T, "ashes")
-a3 <- b3 %>% mutate(id = row_number()) %>% filter_all(any_vars(. == "legend" | . == "goldl")) %>%
-    mutate(diff = id - lag(id), mean = mean(diff, na.rm = T))
-b3d <- PacksToCompletion(T, F, T, F, T, "ashes")
-
-# Playing around with pack dupe protection and legend pity timer and legend dupe
-ashesFunc <- CreateCollection("ashes", T, T)
-b <- map_dfr(1:400, function(x) {OpenPack(ashesFunc)})
-
-# add cards one at a time
-for(i in 1:100) pick <- ashesFunc("goldc", 1) # just adds dust
-for(i in 1:100) pick <- ashesFunc("common", 1) # adds cards
-collection <- ashesFunc("")
-
-################### Brain storming ways I can keep track of collected vs. collected and dusted
-ashes <- CreateCollection("ashes", T)
-aCo <- ashes("common", 1)
-aDf <- bind_rows(aCo[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount")
-
-# possibly filter out legends
-aCo2 <- ashes("legend", 1)
-aDf2 <- bind_rows(aCo2[[1]]) %>% pivot_longer(cols = everything(), names_to = "id", values_to = "amount") %>%
-    filter(!(str_detect(id, "legend") & amount == 1))
-
-# This is old code for insuring the number of commons/rares/etc. matched the probs I supplied, roughly.
-df_config <-
-    packs %>%
-    mutate(id = row_number()) %>%
-    pivot_longer(cols = matches("d[0-9]"),
-                 names_to = "pickOrder",
-                 values_to = "rarity") %>%
-    group_by(id) %>%
-    mutate(nrC = sum(rarity == "common"),
-           nrR = sum(rarity == "rare"),
-           nrE = sum(rarity == "epic"),
-           nrL = sum(rarity == "legend"),
-           nrGc = sum(rarity == "goldc"),
-           nrGr = sum(rarity == "goldr"),
-           nrGe = sum(rarity == "golde"),
-           nrGl = sum(rarity == "goldl")) %>%
-    select(-pickOrder, -rarity)
-# %>%
-#     distinct() %>%
-#     group_by(nrC, nrR, nrE, nrL, nrGc, nrGr, nrGe, nrGl) %>%
-#     summarise(count = n()) %>%
-#     ungroup()
-map(df_config, function(x) {sum(x) / (nrow(df_config) * 5)})

@@ -3,8 +3,9 @@ source(file.path(here(), "globals.R"))
 
 #
 CreateCollection <-
-    function(set, useDust, packDupeProtect, legendDupeProtect, allDupeProtect,
-             rrty = rarities, allSets = sets, dInfo = pInfo[["dust"]]) {
+    function(set, useDust, keepGold, packDupeProtect, legendDupeProtect,
+             allDupeProtect, rrty = rarities, allSets = sets,
+             dInfo = pInfo[["dust"]]) {
     
     # make character vectors for each card which will act as names in our list
     commons <- paste0(rrty["common"], seq(allSets$common[set]))
@@ -77,7 +78,7 @@ CreateCollection <-
                 # Find all legends in our collection
                 collectedLegends <-
                     str_extract(names(cllctn[str_detect(names(cllctn), "legend") &
-                                             cllctn >= 1]),
+                                             cllctn == 1]),
                                 "[0-9]{1,2}")
                 
                 # Remove all legends already collected from the sample space
@@ -114,8 +115,8 @@ CreateCollection <-
             # Add the card to our phantom collection
             pCllctn[[idx]] <<- pCllctn[[idx]] + 1
             
-            # if we drew a golden card, dust it
-            if(draw %in% gold & useDust) {
+            # if we drew a golden card and we're not keeping them, dust it
+            if(draw %in% gold & !keepGold) {
               startDust <<- startDust + unname(dInfo[draw])
             
             } else {
@@ -233,11 +234,16 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
 }
 
 #
-PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
-                              legendDupeProtect, allDupeProtect, setName) {
+PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
+                              guaranteeLegend, legendDupeProtect,
+                              allDupeProtect, setName) {
+    
+    print(paste0("CURRENT SET: ", setName))
     
     # Create function for adding cards to collection given a specific set
-    AddCardFunc <- CreateCollection(setName, useDust = useDust,
+    AddCardFunc <- CreateCollection(setName,
+                                    useDust = useDust,
+                                    keepGold = keepGold,
                                     packDupeProtect = packDupeProtect,
                                     legendDupeProtect = legendDupeProtect,
                                     allDupeProtect = allDupeProtect)
@@ -285,10 +291,10 @@ PacksToCompletion <- function(useDust, packDupeProtect, guaranteeLegend,
 }
 
 #
-RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
-                          legendDupeProtect, allDupeProtect,
+RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
+                          guaranteeLegend, legendDupeProtect, allDupeProtect, 
                           setLabels = setNames) {
-
+    
     # Pre-populate lists
     nrPacksOpenedList <- vector("list", nrRuns)
     dustAccumulatedList <- vector("list", nrRuns)
@@ -296,11 +302,16 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
     # Each run, simulate how many packs to a complete collection for each set
     for(i in seq(nrRuns)) {
         
+        cat("\n")
+        print(paste0("RUN ", i, ": ", useDust, keepGold, packDupeProtect,
+                     guaranteeLegend, legendDupeProtect, allDupeProtect))
+        
         # For each completed set, return total number of packs opened as a df
         packLog <-
             map(as.list(setLabels),
                 function(x) {
                     PacksToCompletion(useDust = useDust,
+                                      keepGold = keepGold,
                                       packDupeProtect = packDupeProtect,
                                       guaranteeLegend = guaranteeLegend,
                                       legendDupeProtect = legendDupeProtect,
@@ -329,6 +340,7 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
                      names_to = "set",
                      values_to = "nrPacks") %>%
         mutate(useDust = useDust,
+               keepGold = keepGold,
                packDupeProtect = packDupeProtect,
                guaranteeLegend = guaranteeLegend,
                legendDupeProtect = legendDupeProtect,
@@ -339,6 +351,7 @@ RunSimulation <- function(nrRuns, useDust, packDupeProtect, guaranteeLegend,
         dustAccumulatedList %>%
         flatten_dfr() %>%
         mutate(useDust = useDust,
+               keepGold = keepGold,
                packDupeProtect = packDupeProtect,
                guaranteeLegend = guaranteeLegend,
                legendDupeProtect = legendDupeProtect,
