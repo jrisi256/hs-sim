@@ -1,5 +1,6 @@
 library(here)
 source(file.path(here(), "packages.R"))
+registerDoParallel(cores = parallel::detectCores() - 1)
 
 # number of cards in a pack or the number of "draws"
 nrDraw <- 5

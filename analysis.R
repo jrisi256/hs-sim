@@ -1,35 +1,34 @@
 library(here)
 source(file.path(here(), "functions.R"))
 
-startTime <- proc.time()
-a <- pmap(list(nrRuns = c(25, 25, 25),
-               useDust = c(F, T, T),
-               keepGold = c(T, T, F),
-               packDupeProtect = c(F, F, F),
-               guaranteeLegend = c(T, T, T),
-               legendDupeProtect = c(F, F, F),
-               allDupeProtect = c(T, T, T),
-               setLabels = c(list(setNames[c("classic", "ashes")]),
-                             list(setNames[c("classic", "ashes")]),
-                             list(setNames[c("classic", "ashes")]))),
-          RunSimulation)
-endTime <- proc.time() - startTime
-a2 <- pmap(a, function(...) {bind_rows(...)})
+# Used for setting seeds in parallel computing contexts
+set.seed(1, kind = "L'Ecuyer-CMRG")
 
+# New, take advantage of parallel
 startTime <- proc.time()
-a <- pmap(list(nrRuns = c(50, 50, 50),
-               useDust = c(T, T, T),
-               keepGold = c(F, F, F),
-               packDupeProtect = c(F, T, F),
-               guaranteeLegend = c(F, T, T),
-               legendDupeProtect = c(F, T, F),
-               allDupeProtect = c(F, F, T),
-               setLabels = c(list(setNames[c("classic", "ashes")]),
-                             list(setNames[c("classic", "ashes")]),
-                             list(setNames[c("classic", "ashes")]))),
+a <- pmap(list(nrRuns = c(5, 5),
+               useDust = c(T, T),
+               keepGold = c(T, F),
+               packDupeProtect = c(F, F),
+               guaranteeLegend = c(T, T),
+               legendDupeProtect = c(F, F),
+               allDupeProtect = c(T, T)),
           RunSimulation)
 endTime <- proc.time() - startTime
-a2 <- pmap(a, function(...) {bind_rows(...)})
+
+packTotal <- a %>% flatten() %>% map(1) %>% bind_rows()
+dustTotal <- a %>% flatten() %>% map(2) %>% bind_rows()
+
+a2summ <-
+    packTotal %>%
+    group_by_at(vars(-matches("run|nrPacks"))) %>%
+    summarise(n = n(),
+              mean = mean(nrPacks),
+              sd = sd(nrPacks),
+              se = sd / sqrt(n),
+              moe = qt(0.975, df = n - 1) * se,
+              confintu = mean + moe,
+              confintl = mean - moe)
 
 # qt(0.995, df = n - 1) is the t-statistic (because we don't know the true population std. dev.)
 # Because we don't know the true pop. std. dev., cannot use z-statistic
@@ -44,20 +43,8 @@ a2 <- pmap(a, function(...) {bind_rows(...)})
 # you can use a z-statistic for estimating a sample size given a margin of error and desired confidence interval
 # you would just assume your sample std. dev. is the true pop. std. dev., this should really reinforce it's an estimate
 # n = (z-statistic * sample std. dev. (assumed pop.) / margin of error) ^ 2
-
-a2summ <-
-    a2$nrPacks %>%
-    group_by_at(vars(-matches("run|nrPacks"))) %>%
-    summarise(n = n(),
-              mean = mean(nrPacks),
-              sd = sd(nrPacks),
-              se = sd / sqrt(n),
-              moe = qt(0.975, df = n - 1) * se,
-              confintu = mean + moe,
-              confintl = mean - moe)
     
 aNorm <- a2$nrPacks %>% filter(useDust == T, keepGold == T)
 ggplot(aNorm, aes(x = nrPacks)) + geom_histogram(bins = 40) + theme_bw()
 
-a3 <- bind_rows(a[[1]]["nrPacks"], a[[2]]["nrPacks"])
-a4 <- bind_rows(a[[1]]["dustTotals"], a[[2]]["dustTotals"])
+file.remove("log.txt")
