@@ -5,8 +5,8 @@ source(file.path(here(), "globals.R"))
 CreateCollection <-
     function(set, useDust, keepGold, packDupeProtect, legendDupeProtect,
              allDupeProtect, rrty = rarities, allSets = sets,
-             dInfo = pInfo[["dust"]]) {
-    
+             dInfo = pInfo[["dust"]], target = target) {
+        
     # make character vectors for each card which will act as names in our list
     commons <- paste0(rrty["common"], seq(allSets$common[set]))
     rares <- paste0(rrty["rare"], seq(allSets$rare[set]))
@@ -236,7 +236,11 @@ CompleteCollectionNoDust <- function(collection, rrts = rarities) {
 #
 PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
                               guaranteeLegend, legendDupeProtect,
-                              allDupeProtect, setName) {
+                              allDupeProtect, setName,
+                              target = c(common = sets[["common"]][[setName]],
+                                         rare = sets[["rare"]][[setName]],
+                                         epic = sets[["epic"]][[setName]],
+                                         legendary = sets[["legendary"]][[setName]])) {
     
     # Create function for adding cards to collection given a specific set
     AddCardFunc <- CreateCollection(setName,
@@ -244,7 +248,8 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
                                     keepGold = keepGold,
                                     packDupeProtect = packDupeProtect,
                                     legendDupeProtect = legendDupeProtect,
-                                    allDupeProtect = allDupeProtect)
+                                    allDupeProtect = allDupeProtect,
+                                    target = target)
     
     # Pre-populate a list so we can keep a log of the packs we opened
     packs <- vector("list", 10000)
@@ -253,6 +258,8 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
     counter <- 1
     
     while(T) {
+        
+        print(target)
         
         # If we're guaranteeing a legend in 1st 10 packs, use a pity timer
         if(guaranteeLegend & counter <= 10) {

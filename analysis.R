@@ -4,15 +4,24 @@ source(file.path(here(), "functions.R"))
 # Used for setting seeds in parallel computing contexts
 set.seed(1, kind = "L'Ecuyer-CMRG")
 
+# testing out target collection
+test <- PacksToCompletion(T, F, F, T, F, T, "ashes",
+                          target = c(common = 5, rare = 2,
+                                     epic = 1, legendary = 1))
+
+
+
+
+
 # New, take advantage of parallel
 startTime <- proc.time()
-a <- pmap(list(nrRuns = c(5, 5),
-               useDust = c(T, T),
-               keepGold = c(T, F),
-               packDupeProtect = c(F, F),
-               guaranteeLegend = c(T, T),
-               legendDupeProtect = c(F, F),
-               allDupeProtect = c(T, T)),
+a <- pmap(list(nrRuns = c(250, 250, 250),
+               useDust = c(T, T, T),
+               keepGold = c(F, F, F),
+               packDupeProtect = c(F, T, F),
+               guaranteeLegend = c(F, T, T),
+               legendDupeProtect = c(F, T, F),
+               allDupeProtect = c(F, F, T)),
           RunSimulation)
 endTime <- proc.time() - startTime
 
