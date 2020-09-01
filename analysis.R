@@ -1,13 +1,13 @@
 library(here)
-source(file.path(here(), "functions.R"))
+invisible(sapply(list.files(file.path(here(), "functions"), full.names = T), source))
 
 # Used for setting seeds in parallel computing contexts
 set.seed(1, kind = "L'Ecuyer-CMRG")
 
 # testing out target collection
-test <- PacksToCompletion(T, F, F, T, F, T, "ashes",
+test <- PacksToCompletion(T, F, F, T, F, T, T, "ashes",
                           target = c(common = 5, rare = 2,
-                                     epic = 1, legendary = 1))
+                                     epic = 1, legend = 1))
 
 
 
