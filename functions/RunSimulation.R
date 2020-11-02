@@ -3,8 +3,12 @@ source(file.path(here(), "globals.R"))
 
 #
 RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
-                          guaranteeLegend, legendDupeProtect, allDupeProtect, 
-                          setLabels = setNames) {
+                          guaranteeLegend, legendDupeProtect, allDupeProtect,
+                          onlyTarget, setLabels = setNames,
+                          target = c(common = sets[["common"]][[setName]],
+                                     rare = sets[["rare"]][[setName]],
+                                     epic = sets[["epic"]][[setName]],
+                                     legendary = sets[["legendary"]][[setName]])) {
     
     # Create file to write progress to
     writeLines(c(""), "log.txt")
@@ -24,7 +28,8 @@ RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
                                "Current Set: ", x, "\n",
                                "Current Configuration: ", useDust, keepGold,
                                packDupeProtect, guaranteeLegend,
-                               legendDupeProtect, allDupeProtect, "\n"))
+                               legendDupeProtect, allDupeProtect, onlyTarget,
+                               "\n"))
                     
                     PacksToCompletion(useDust = useDust,
                                       keepGold = keepGold,
@@ -32,6 +37,7 @@ RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
                                       guaranteeLegend = guaranteeLegend,
                                       legendDupeProtect = legendDupeProtect,
                                       allDupeProtect = allDupeProtect,
+                                      onlyTarget = onlyTarget,
                                       setName = x)
         })
         
@@ -47,7 +53,8 @@ RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
                    packDupeProtect = packDupeProtect,
                    guaranteeLegend = guaranteeLegend,
                    legendDupeProtect = legendDupeProtect,
-                   allDupeProtect = allDupeProtect)
+                   allDupeProtect = allDupeProtect,
+                   onlyTarget = onlyTarget)
         
         # Turn the dust accumulated at each pack opening for each set into a df
         dustAccumulated <-
@@ -62,7 +69,8 @@ RunSimulation <- function(nrRuns, useDust, keepGold, packDupeProtect,
                            packDupeProtect = packDupeProtect,
                            guaranteeLegend = guaranteeLegend,
                            legendDupeProtect = legendDupeProtect,
-                           allDupeProtect = allDupeProtect)
+                           allDupeProtect = allDupeProtect,
+                           onlyTarget = onlyTarget)
             })
         
         list(nrPacksOpened, dustAccumulated)

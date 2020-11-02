@@ -4,11 +4,7 @@ source(file.path(here(), "globals.R"))
 #
 PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
                               guaranteeLegend, legendDupeProtect,
-                              allDupeProtect, onlyTarget, setName, 
-                              target = c(common = sets[["common"]][[setName]],
-                                         rare = sets[["rare"]][[setName]],
-                                         epic = sets[["epic"]][[setName]],
-                                         legendary = sets[["legendary"]][[setName]])) {
+                              allDupeProtect, onlyTarget, setName, target) {
     
     # Create function for adding cards to collection given a specific set
     AddCardFunc <- CreateCollection(setName,
