@@ -140,7 +140,10 @@ CreateCollection <-
                 
                 # Add card to the pack
                 openingPack[drawNr] <<- idx
+                
+                return(list(cllctn, startDust, card))
             }
+            
             return(list(cllctn, startDust))
         }
     }

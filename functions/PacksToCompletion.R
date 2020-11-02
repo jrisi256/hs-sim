@@ -33,7 +33,7 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
             pack <- OpenPack(AddCardFunc, guaranteePityTimer = counter / 10)
             
             # If we opened a legendary or golden legendary, turn off pity timer
-            if(any(pack == "legend" | pack == "goldl"))
+            if(any(str_detect(pack, "legend|goldl")))
                 guaranteeLegend = F
             
             # No legend guarantee or opened at least 10 packs, don't use pity timer
@@ -45,15 +45,15 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
         packs[[counter]] <- pack
         
         # Get collection
-        collection <- AddCardFunc("")
+        collection <- AddCardFunc("", "")
         
         # Using dust and collection is complete, return pack log and set
-        if(useDust && CompleteCollection(collection)) {
+        if(useDust && CompleteCollection(collection, target)) {
             packs <- bind_rows(packs)
             return(packs)
             
             # Not using dust and collection is complete, return pack log and set
-        } else if(!useDust && CompleteCollectionNoDust(collection)) {
+        } else if(!useDust && CompleteCollectionNoDust(collection, target)) {
             packs <- bind_rows(packs)
             return(packs)
         }

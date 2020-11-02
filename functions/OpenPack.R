@@ -48,6 +48,11 @@ OpenPack <-
         openedPack <- pmap(list(pack, 1:length(pack)), AddCardFunc)
         cDust <- openedPack[[draws]][[2]]
         
+        # Capture the cards opened in our pack
+        openedCards <- openedPack %>% map(3)
+        openedCards <- paste0(pack, unlist(openedCards))
+        names(openedCards) <- c("d1", "d2", "d3", "d4", "d5")
+        
         # Return the pack rarity distribution
-        return(as.list(c(pack, dust = cDust)))
+        return(as.list(c(openedCards, dust = cDust)))
     }
