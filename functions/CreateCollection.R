@@ -66,13 +66,13 @@ CreateCollection <-
                     if(length(sampleSpace) == 1) {
                         sampleSpace <- list(sampleSpace)
                         
-                        # If empty, all cards in current rarity have been collected
+                    # If empty, all cards in current rarity have been collected
                     } else if(length(sampleSpace) == 0) {
                         sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
                     }
                     
                     
-                    # If we're drawing a legendary, and have dupe protect on legendary  
+                # If we're drawing a legendary, and have dupe protect on legendary  
                 } else if(legendDupeProtect && normalizeDraw == "legend") {
                     
                     # Find all legends in our collection
@@ -88,7 +88,7 @@ CreateCollection <-
                     if(length(sampleSpace) == 1) {
                         sampleSpace <- list(sampleSpace)
                         
-                        # if sample space is empty, means all legends collected
+                    # if sample space is empty, means all legends collected
                     } else if(length(sampleSpace) == 0)
                         sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
                     
