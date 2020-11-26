@@ -71,7 +71,6 @@ CreateCollection <-
                         sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
                     }
                     
-                    
                 # If we're drawing a legendary, and have dupe protect on legendary  
                 } else if(legendDupeProtect && normalizeDraw == "legend") {
                     
@@ -92,15 +91,18 @@ CreateCollection <-
                     } else if(length(sampleSpace) == 0)
                         sampleSpace <- allSets[[normalizeDraw]][set] %>% seq()
                     
-                    # Pack dupe protect, don't pick cards already picked twice
-                } else if(packDupeProtect && normalizeDraw != "legend") {
+                # Pack dupe protect, don't pick cards already picked twice
+                } else if(packDupeProtect) {
                     
                     # Find nr. of cards in current pack with "normalizeDraw" rarity
                     openedRarities <- openingPack[str_detect(openingPack, normalizeDraw)]
                     countRarities <- table(openedRarities)
                     
-                    # Keep only those cards drawn max amount
-                    countRarities <- countRarities[countRarities == 2]
+                    # Keep only those cards drawn the max amount
+                    if(normalizeDraw != "legend")
+                        countRarities <- countRarities[countRarities == 2]
+                    else
+                        countRarities <- countRarities[countRarities == 1]
                     
                     # Remove all cards drawn twice from the sample space
                     sampleSpace <- setdiff(sampleSpace,
@@ -119,13 +121,13 @@ CreateCollection <-
                 if(!keepGold && draw %in% gold ) {
                     startDust <<- startDust + unname(dInfo[draw])
                     
-                    # If we drew a non-target card and we're not keeping them, dust it
+                # If we drew a non-target card and we're not keeping them, dust it
                 } else if(onlyTarget && !(idx %in% paste0(normalizeDraw, 1:target[normalizeDraw]))) {
                     startDust <<- startDust + unname(dInfo[draw])
                     
-                    # If we drew a non-golden card (or a golden card but we're keeping them)
-                    # AND a target card (or a non-target card but we're keeping them),
-                    # add the card to the collection
+                # If we drew a non-golden card (or a golden card but we're keeping them)
+                # AND a target card (or a non-target card but we're keeping them),
+                # add the card to the collection
                 } else {
                     
                     # If we already have full copies of the card, dust it

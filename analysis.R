@@ -5,7 +5,14 @@ invisible(sapply(list.files(file.path(here(), "functions"), full.names = T), sou
 set.seed(1, kind = "L'Ecuyer-CMRG")
 
 # testing out target collection
-test <- PacksToCompletion(T, F, F, T, F, T, F, "ashes",
+test <- PacksToCompletion(useDust = T,
+                          keepGold = F,
+                          packDupeProtect = T,
+                          guaranteeLegend = T,
+                          legendDupeProtect = F,
+                          allDupeProtect = F,
+                          onlyTarget = F,
+                          set = "ashes",
                           target = c(common = 14, rare = 6,
                                      epic = 6, legend = 4))
 

@@ -48,7 +48,7 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
             packs <- bind_rows(packs)
             return(packs)
             
-            # Not using dust and collection is complete, return pack log and set
+        # Not using dust and collection is complete, return pack log and set
         } else if(!useDust && CompleteCollectionNoDust(collection, target)) {
             packs <- bind_rows(packs)
             return(packs)
