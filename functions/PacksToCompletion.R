@@ -1,7 +1,34 @@
 library(here)
 source(file.path(here(), "globals.R"))
 
-#
+#' Called from RunSimulation. Given a set and a target collection, this function
+#' will return how many packs it takes to complete the collection as well as an
+#' associated pack log which catalogs every pack opened and dust acquired.
+#' 
+#' @param useDust Logical. Should dust be used to complete the collection?
+#' @param keepGold Logical. Should we keep golden cards or dust them?
+#' @param packDupeProtect Logical. Do we have pack-level duplicate protection?
+#' @param guaranteeLegend Logical. Do we ensure a legendary in the 1st 10 packs?
+#' @param legendDupeProtect Logical. Do we have legendary duplication protection?
+#' @param allDupeProtect Logical. Do we have duplicate protection for all rarities?
+#' @param onlyTarget Logical. Should we keep only cards in target?
+#' @param setName Character. What set are we running the simulation on?
+#' @param target Named numeric vector. Specifies number of common, rare,
+#' epic, and legendary cards one wishes to obtain from the set.
+#' 
+#' @return A data frame which catalogs every packed opened and the dust acquired
+#' with the opening of each pack (due to dusting cards).
+#' 
+#' @examples 
+#' test <- PacksToCompletion(useDust = T,
+#'                           keepGold = F,
+#'                           packDupeProtect = T,
+#'                           guaranteeLegend = T,
+#'                           legendDupeProtect = F,
+#'                           allDupeProtect = F,
+#'                           onlyTarget = T,
+#'                           setName = "ashes",
+#'                           target = c(common = 0, rare = 6, epic = 6, legend = 4))
 PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
                               guaranteeLegend, legendDupeProtect,
                               allDupeProtect, onlyTarget, setName, target) {
@@ -32,7 +59,7 @@ PacksToCompletion <- function(useDust, keepGold, packDupeProtect,
             if(any(str_detect(pack, "legend|goldl")))
                 guaranteeLegend = F
             
-            # No legend guarantee or opened at least 10 packs, don't use pity timer
+        # No legend guarantee or opened at least 10 packs, don't use pity timer
         } else if(!guaranteeLegend || counter > 10) {
             pack <- OpenPack(AddCardFunc)
         }

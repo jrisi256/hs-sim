@@ -11,29 +11,47 @@ test <- PacksToCompletion(useDust = T,
                           guaranteeLegend = T,
                           legendDupeProtect = F,
                           allDupeProtect = F,
-                          onlyTarget = F,
-                          set = "ashes",
-                          target = c(common = 14, rare = 6,
+                          onlyTarget = T,
+                          setName = "ashes",
+                          target = c(common = 0, rare = 6,
                                      epic = 6, legend = 4))
 
+sim1 <- RunSimulation(nrRuns = 2,
+                   useDust = T,
+                   keepGold = F,
+                   packDupeProtect = T,
+                   guaranteeLegend = T,
+                   legendDupeProtect = F,
+                   allDupeProtect = F,
+                   onlyTarget = F)
+packTotal <- sim1 %>% map(1) %>% bind_rows()
+dustTotal <- sim1 %>% map(2) %>% bind_rows()
 
 
+test <- RunSimulation(nrRuns = 2,
+                      useDust = T,
+                      keepGold = F,
+                      packDupeProtect = T,
+                      guaranteeLegend = T,
+                      legendDupeProtect = F,
+                      allDupeProtect = F,
+                      onlyTarget = F,
+                      setLabels = c("classic", "gvg", "grandt"),
+                      target = list(classic = c(common = 30,
+                                                rare = 10,
+                                                epic = 5,
+                                                legend = 2),
+                                    gvg = c(common = 20,
+                                            rare = 7,
+                                            epic = 3,
+                                            legend = 1),
+                                    grandt = c(common = 0,
+                                               rare = 5,
+                                               epic = 2,
+                                               legend = 1)))
 
-
-# New, take advantage of parallel
-startTime <- proc.time()
-a <- pmap(list(nrRuns = c(250, 250, 250),
-               useDust = c(T, T, T),
-               keepGold = c(F, F, F),
-               packDupeProtect = c(F, T, F),
-               guaranteeLegend = c(F, T, T),
-               legendDupeProtect = c(F, T, F),
-               allDupeProtect = c(F, F, T)),
-          RunSimulation)
-endTime <- proc.time() - startTime
-
-packTotal <- a %>% flatten() %>% map(1) %>% bind_rows()
-dustTotal <- a %>% flatten() %>% map(2) %>% bind_rows()
+packTotal <- test %>% map(1) %>% bind_rows()
+dustTotal <- test %>% map(2) %>% bind_rows()
 
 a2summ <-
     packTotal %>%

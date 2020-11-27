@@ -1,10 +1,45 @@
 library(here)
 source(file.path(here(), "globals.R"))
 
-#
+#' A function factory which creates a function allowing for cards to be added to
+#' your collection. The function created by the function factory is called in
+#' OpenPack. CreateCollection function is called in PacksToCompletion.
+#' 
+#' @param set Character. What set are we adding a card from?
+#' @param useDust Logical. Should dust be used to complete the collection?
+#' @param keepGold Logical. Should we keep golden cards or dust them?
+#' @param packDupeProtect Logical. Do we have pack-level duplicate protection?
+#' @param guaranteeLegend Logical. Do we ensure a legendary in the 1st 10 packs?
+#' @param legendDupeProtect Logical. Do we have legendary duplication protection?
+#' @param allDupeProtect Logical. Do we have duplicate protection for all rarities?
+#' @param onlyTarget Logical. Should we keep only cards in target?
+#' @param target Named numeric vector. Specifies number of common, rare,
+#' epic, and legendary cards one wishes to obtain from the set.
+#' @param rrty Named character vector. The names of the rarities in Hearthstone.
+#' Defaults to the global variable rarities.
+#' @param allSets A list of named numeric vectors with 4 elements. Each element
+#' is a different rarity, and within each rarity is the number of cards of that
+#' rarity for each set.
+#' @param dInfo Named numeric vector. Catalogs how much a card of each rarity is
+#' worth when they're dusted.
+#' 
+#' @return A function which can be used to add cards to your collection.
+#' 
+#' @example
+#' AshesCollection <- CreateCollection(set = "ashes",
+#'                                     useDust = T,
+#'                                     keepGold = F,
+#'                                     packDupeProtect = F,
+#'                                     legendDupeProtect = F,
+#'                                     allDupeProtect = T,
+#'                                     onlyTarget = T,
+#'                                     target = c(common = 30, rare = 12, epic = 10,
+#'                                                legend = 5))
+#' emptyCollection <- AshesCollection("")
+#' addACard <- AshesCollection("common", 1)
 CreateCollection <-
     function(set, useDust, keepGold, packDupeProtect, legendDupeProtect,
-             allDupeProtect, target, onlyTarget, rrty = rarities, allSets = sets,
+             allDupeProtect, onlyTarget, target, rrty = rarities, allSets = sets,
              dInfo = pInfo[["dust"]]) {
         
         # make character vectors for each card which will act as names in our list
@@ -122,7 +157,7 @@ CreateCollection <-
                     startDust <<- startDust + unname(dInfo[draw])
                     
                 # If we drew a non-target card and we're not keeping them, dust it
-                } else if(onlyTarget && !(idx %in% paste0(normalizeDraw, 1:target[normalizeDraw]))) {
+                } else if(onlyTarget && !(idx %in% paste0(normalizeDraw, 0:target[normalizeDraw]))) {
                     startDust <<- startDust + unname(dInfo[draw])
                     
                 # If we drew a non-golden card (or a golden card but we're keeping them)

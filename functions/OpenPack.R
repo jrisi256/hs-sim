@@ -1,10 +1,38 @@
 library(here)
 source(file.path(here(), "globals.R"))
 
-#
+#' Open a pack. Called from within PacksToCompletion.
+#' 
+#' @param AddCardFunc Function. Function created from CreateCollection function
+#' factory.
+#' @param guranteePityTimer Numeric. Defaults to 0. Can give it a number between
+#' 0 and 1. 0 indicates pity timer is off. Any other number will be used as the
+#' new probability for pulling a legendary.
+#' @param space Named character vector. The names of the rarities in Hearthstone.
+#' Defaults to the global variable rarities.
+#' @param draws Numeric. The number of cards in a pack. Defaults to the global
+#' variable nrDraw.
+#' @param probs Named numeric vector. Probabilities of pulling a card of each
+#' rarity type. Defaults to the global variable pInfo[["pr"]].
+#' 
+#' @return A 6 element list. The first 5 elements are the opened cards. The 6th
+#' elements is the accumulated dust.
+#' 
+#' @example
+#' AshesCollection <- CreateCollection(set = "ashes",
+#'                                     useDust = T,
+#'                                     keepGold = F,
+#'                                     packDupeProtect = F,
+#'                                     legendDupeProtect = F,
+#'                                     allDupeProtect = T,
+#'                                     onlyTarget = T,
+#'                                     target = c(common = 30, rare = 12, epic = 10,
+#'                                                legend = 5))
+#' pack <- OpenPack(AshesCollection)
+#' collection <- AshesCollection("")
 OpenPack <-
-    function(AddCardFunc, guaranteePityTimer = 0,
-             space = rarities, draws = nrDraw, probs = pInfo[["pr"]]) {
+    function(AddCardFunc, guaranteePityTimer = 0, space = rarities,
+             draws = nrDraw, probs = pInfo[["pr"]]) {
         
         # Scale up ratio of legends to golden legends to account for pity timer
         guaranteePityTimerGold <-
@@ -22,7 +50,7 @@ OpenPack <-
         if(guaranteedLegend == "nolegend") {
             pack <- as.list(sample(space, draws, replace = T, probs))
             
-            # Drew a legend, only need to draw 4 cards from modified distribution   
+        # Drew a legend, only need to draw 4 cards from modified distribution   
         } else {
             
             # Distribute probability of opening legend to other rarities evenly
